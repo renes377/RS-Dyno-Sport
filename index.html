@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slotcar Testbench Pro V3.6.1</title>
-
+    <title>Slotcar Testbench Pro V3.6.4</title>
+    
     <link rel="manifest" href="manifest.json">
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    
     <style>
         body { font-family: 'Inter', sans-serif; }
         .tab-button.active { background-color: #3B82F6; color: white; }
@@ -46,7 +45,7 @@
 <body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
     <div class="bg-gray-800 p-6 md:p-8 rounded-2xl shadow-2xl w-full max-w-5xl">
         <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-            <h1 class="text-3xl font-bold text-white">Slotcar Pro-Testbench <span class="text-blue-400 text-lg">V3.6.1 App</span></h1>
+            <h1 class="text-3xl font-bold text-white">Slotcar Testbench Pro <span class="text-blue-400 text-lg">V3.6.4 App</span></h1>
             <div class="flex gap-2">
                 <button id="connectButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                     Verbinden
@@ -60,11 +59,11 @@
             <p id="statusText" class="text-gray-400 text-center">Nicht verbunden. Bitte auf "Verbinden" klicken.</p>
         </div>
         
-        <div class="flex space-x-2 mb-4 p-1 bg-gray-700 rounded-lg">
-            <button id="tab-live" class="tab-button active flex-1 py-2 px-4 rounded-md font-semibold" onclick="showTab('live')">Live-Daten</button>
-            <button id="tab-dyno" class="tab-button inactive flex-1 py-2 px-4 rounded-md font-semibold" onclick="showTab('dyno')">Dyno-Lauf</button>
-            <button id="tab-longrun" class="tab-button inactive flex-1 py-2 px-4 rounded-md font-semibold" onclick="showTab('longrun')">Long-Run (2 Min)</button>
-            <button id="tab-settings" class="tab-button inactive flex-1 py-2 px-4 rounded-md font-semibold" onclick="showTab('settings')">Einstellungen</button>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4 p-1 bg-gray-700 rounded-lg">
+            <button id="tab-live" class="tab-button active py-2 px-4 rounded-md font-semibold" onclick="showTab('live')">Live</button>
+            <button id="tab-dyno" class="tab-button inactive py-2 px-4 rounded-md font-semibold" onclick="showTab('dyno')">Dyno</button>
+            <button id="tab-longrun" class="tab-button inactive py-2 px-4 rounded-md font-semibold" onclick="showTab('longrun')">Long-Run</button>
+            <button id="tab-settings" class="tab-button inactive py-2 px-4 rounded-md font-semibold" onclick="showTab('settings')">Settings</button>
         </div>
 
         <div id="content-live" class="tab-content active">
@@ -108,16 +107,6 @@
                     </div>
                 </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div class="bg-gray-700 p-4 rounded-lg">
-                    <h3 class="text-lg font-semibold text-center mb-2">Live RPM (Motor) (Letzte 60s)</h3>
-                    <canvas id="liveRpmChart"></canvas>
-                </div>
-                <div class="bg-gray-700 p-4 rounded-lg">
-                    <h3 class="text-lg font-semibold text-center mb-2">Live Slotcar-Temp (°C) (Letzte 60s)</h3>
-                    <canvas id="liveTempChart"></canvas>
-                </div>
-            </div>
         </div>
 
         <div id="content-dyno" class="tab-content">
@@ -125,7 +114,7 @@
             <div class="flex flex-col md:flex-row gap-4 mb-4 bg-gray-700 p-4 rounded-lg items-start justify-between">
                 
                 <div class="flex-1">
-                    <label class="block text-sm font-medium text-gray-300 mb-2">Vergleiche mit (Garage):</label>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Garage (Gespeicherte Läufe):</label>
                     <div id="dynoCompareCheckboxes" class="max-h-32 overflow-y-auto">
                         <p class="text-gray-400">Garage ist leer.</p>
                     </div>
@@ -152,15 +141,12 @@
                     <span id="dynoMaxTorqueRpm" class="text-lg text-gray-300">@ --- RPM</span>
                 </div>
             </div>
-            <div class="bg-gray-700 p-4 rounded-lg">
-                <canvas id="dynoChart"></canvas>
-            </div>
         </div>
 
         <div id="content-longrun" class="tab-content">
             <p id="longrunStatus" class="text-center text-yellow-400 mb-4">Warte auf nächsten Long-Run-Test (2 Min) vom Prüfstand...</p>
             <div class="bg-gray-700 p-4 rounded-lg">
-                <canvas id="longrunChart"></canvas>
+                <p id="longrunStatusText" class="text-lg text-gray-300">Live-Daten werden empfangen...</p>
             </div>
         </div>
 
@@ -208,6 +194,9 @@
                 </button>
             </div>
         </div>
+        
+        <p class="text-center text-gray-500 text-xs mt-6">Developed by RS</p>
+        
     </div> 
 
     <div id="saveModal" class="modal">
@@ -232,17 +221,6 @@
     const BLE_SERIAL_SERVICE_UUID = '0000ffe0-0000-1000-8000-00805f9b34fb';
     const BLE_SERIAL_CHAR_UUID = '0000ffe1-0000-1000-8000-00805f9b34fb';
     
-    let dynoChartInstance = null, longrunChartInstance = null, liveRpmChartInstance = null, liveTempChartInstance = null;
-    
-    // Farben für Dyno-Overlay
-    const compareColors = [
-        { border: '#60A5FA', bg: 'rgba(96, 165, 250, 0.2)' }, // blue-400
-        { border: '#FBBF24', bg: 'rgba(251, 191, 36, 0.2)' }, // yellow-400
-        { border: '#A78BFA', bg: 'rgba(167, 139, 250, 0.2)' }, // violet-400
-        { border: '#F87171', bg: 'rgba(248, 113, 113, 0.2)' }, // red-400 (normal torque color)
-        { border: '#34D399', bg: 'rgba(52, 211, 153, 0.2)' }  // green-400 (normal power color)
-    ];
-    
     let isDynoRunning = false;
     let isLongrunRunning = false;
     
@@ -252,9 +230,6 @@
     let longrunData = { 
         time: [], rpm: [], temp: [] // T-Car
     };
-    let liveRpmData = { labels: [], data: [] }; // Zeigt Motor-RPM
-    let liveTempData = { labels: [], data: [] };
-    const LIVE_CHART_MAX_POINTS = 60; 
     
     let garage = []; 
     let currentRpmForCalc = 0; // Speichert die letzte Rollen-RPM
@@ -287,7 +262,7 @@
     const dynoCompareCheckboxes = document.getElementById('dynoCompareCheckboxes');
     const rolloutValue = document.getElementById('rolloutValue');
     
-    const longrunStatus = document.getElementById('longrunStatus');
+    const longrunStatus = document.getElementById('longrunStatusText'); // Angepasst
     const settingRollerDiameter = document.getElementById('settingRollerDiameter');
     const settingGearRitzel = document.getElementById('settingGearRitzel');
     const settingGearKranz = document.getElementById('settingGearKranz');
@@ -298,97 +273,11 @@
     const confirmSaveButton = document.getElementById('confirmSaveButton');
 
     // ==========================================================
-    // CHART INITIALISIERUNG
-    // ==========================================================
-    const globalChartOptions = {
-        plugins: { 
-             legend: { labels: { color: 'white' } },
-            tooltip: { mode: 'index', intersect: false }
-        },
-        interaction: { mode: 'index', intersect: false },
-        scales: {   
-             x: { ticks: { color: 'white' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
-            y: { ticks: { color: 'white' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }
-        }
-    };
-    function initCharts() {
-        // --- 1. Dyno-Chart (Vereinfacht für dynamische Overlays) ---
-        const ctxDyno = document.getElementById('dynoChart').getContext('2d');
-        dynoChartInstance = new Chart(ctxDyno, {
-            type: 'line',
-            data: {
-                datasets: [
-                    { label: 'Leistung (P_in, W)', data: [], yAxisID: 'yPower', borderColor: '#34D399', backgroundColor: 'rgba(52, 211, 153, 0.5)', tension: 0.1 },
-                    { label: 'Drehmoment (T_out, mNm)', data: [], yAxisID: 'yTorque', borderColor: '#F87171', backgroundColor: 'rgba(248, 113, 113, 0.5)', tension: 0.1 }
-                    // Vergleichs-Datasets werden von plotCompareDyno() hinzugefügt
-                ]
-            },
-            options: {
-                ...globalChartOptions,
-                scales: {
-                    x: { type: 'linear', position: 'bottom', title: { display: true, text: 'RPM (Motor)', color: 'white' }, ticks: { color: 'white' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
-                    yPower: { position: 'left', title: { display: true, text: 'Leistung (W)', color: 'white' }, ticks: { color: 'white' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
-                    yTorque: { position: 'right', title: { display: true, text: 'Drehmoment (mNm)', color: 'white' }, ticks: { color: 'white' }, grid: { drawOnChartArea: false } }
-                }
-            }
-        });
-        
-        // --- 2. Longrun-Chart ---
-        const ctxLongrun = document.getElementById('longrunChart').getContext('2d');
-        longrunChartInstance = new Chart(ctxLongrun, {
-            type: 'line',
-            data: {
-                labels: [], 
-                datasets: [
-                    { label: 'RPM (Motor)', data: [], yAxisID: 'yRPM', borderColor: '#60A5FA', backgroundColor: 'rgba(96, 165, 250, 0.5)', tension: 0.1 },
-                    { label: 'Motor Temp (°C)', data: [], yAxisID: 'yTemp', borderColor: '#F87171', backgroundColor: 'rgba(248, 113, 113, 0.5)', tension: 0.1 }
-                ]
-            },
-            options: { 
-                ...globalChartOptions,
-                scales: {
-                    x: { 
-                        type: 'time', 
-                        time: { unit: 'second' },
-                        title: { display: true, text: 'Zeit', color: 'white' },
-                        ticks: { color: 'white' }, 
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' } 
-                    },
-                    yRPM: { position: 'left', title: { display: true, text: 'RPM', color: 'white' }, ticks: { color: 'white' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
-                    yTemp: { position: 'right', title: { display: true, text: 'Temperatur (°C)', color: 'white' }, ticks: { color: 'white' }, grid: { drawOnChartArea: false } }
-                }
-            }
-        });
-        
-        // --- 3. Live-RPM-Chart ---
-        const ctxLiveRpm = document.getElementById('liveRpmChart').getContext('2d');
-        liveRpmChartInstance = new Chart(ctxLiveRpm, {
-            type: 'line',
-            data: { labels: liveRpmData.labels, datasets: [{ label: 'RPM (Motor)', data: liveRpmData.data, borderColor: '#60A5FA', backgroundColor: 'rgba(96, 165, 250, 0.5)', tension: 0.1, pointRadius: 0 }] },
-            options: { ...globalChartOptions, scales: { x: {...globalChartOptions.scales.x, ticks: { display: false }}, y: {...globalChartOptions.scales.y, beginAtZero: true }} }
-        });
-        
-        // --- 4. Live-Temp-Chart ---
-        const ctxLiveTemp = document.getElementById('liveTempChart').getContext('2d');
-        liveRpmChartInstance = new Chart(ctxLiveTemp, {
-            type: 'line',
-            data: { labels: liveTempData.labels, datasets: [{ label: 'Temp (°C)', data: liveTempData.data, borderColor: '#F87171', backgroundColor: 'rgba(248, 113, 113, 0.5)', tension: 0.1, pointRadius: 0 }] },
-            options: { ...globalChartOptions, scales: { x: {...globalChartOptions.scales.x, ticks: { display: false }}, y: {...globalChartOptions.scales.y, beginAtZero: false }} }
-        });
-        
-        for (let i = 0; i < LIVE_CHART_MAX_POINTS; i++) {
-            liveRpmData.labels.push(i);
-            liveRpmData.data.push(null);
-            liveTempData.labels.push(i); liveTempData.data.push(null);
-        }
-        liveRpmChartInstance.update('none');
-        liveTempChartInstance.update('none');
-    }
-
-    // ==========================================================
     // EINSTELLUNGEN & GARAGE (localStorage)
     // ==========================================================
-    function saveSettings() {
+    
+    // FIX 1: 'saveSettings' akzeptiert Parameter, um Status-Text optional zu machen
+    function saveSettings(showStatus = false) {
         const settings = {
             rollerDiameter: settingRollerDiameter.value,
             gearRitzel: settingGearRitzel.value,
@@ -396,8 +285,14 @@
             tireDiameter: settingTireDiameter.value
         };
         localStorage.setItem('slotcarSettingsV27', JSON.stringify(settings));
-        statusText.textContent = 'Einstellungen gespeichert!';
-        setTimeout(() => { if(bluetoothDevice) statusText.textContent = 'Verbunden!'; }, 2000);
+        
+        if (showStatus) {
+            statusText.textContent = 'Einstellungen gespeichert!';
+            setTimeout(() => { 
+                if(bluetoothDevice) statusText.textContent = 'Verbunden!';
+                else statusText.textContent = 'Nicht verbunden.';
+            }, 2000);
+        }
         calculateMetrics(currentRpmForCalc); // Metriken bei Speichern neu berechnen
     }
     
@@ -426,7 +321,7 @@
         populateGarageSelect();
     }
     
-    // Erstellt Checkbox-Liste statt Dropdown
+    // Zeigt jetzt nur noch die Liste der gespeicherten Läufe
     function populateGarageSelect() {
         if (garage.length === 0) {
             dynoCompareCheckboxes.innerHTML = '<p class="text-gray-400">Garage ist leer.</p>';
@@ -438,17 +333,9 @@
             const itemDiv = document.createElement('div');
             itemDiv.className = 'compare-checkbox-item';
             
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.id = `compare-check-${index}`;
-            checkbox.value = index;
-            checkbox.onchange = plotCompareDyno; // Hook
-            
             const label = document.createElement('label');
-            label.htmlFor = `compare-check-${index}`;
             label.textContent = run.name;
             
-            itemDiv.appendChild(checkbox);
             itemDiv.appendChild(label);
             dynoCompareCheckboxes.appendChild(itemDiv);
         });
@@ -459,9 +346,11 @@
             garage = [];
             localStorage.removeItem('slotcarGarageV27');
             populateGarageSelect();
-            plotCompareDyno(); // Chart aufräumen
             statusText.textContent = 'Garage geleert!';
-            setTimeout(() => { if(bluetoothDevice) statusText.textContent = 'Verbunden!'; }, 2000);
+            setTimeout(() => { 
+                if(bluetoothDevice) statusText.textContent = 'Verbunden!';
+                else statusText.textContent = 'Nicht verbunden.';
+            }, 2000);
         }
     }
         
@@ -511,7 +400,7 @@
         }
     }
     function onDisconnected() {
-        statusText.textContent = 'Verbindung getrennt.';
+        statusText.textContent = 'Nicht verbunden.';
         bluetoothDevice = null; dataCharacteristic = null;
         isDynoRunning = false; isLongrunRunning = false; 
         connectButton.classList.remove('hidden');
@@ -527,7 +416,7 @@
     }
 
     // ==========================================================
-    // DATENVERARBEITUNG & PARSING (V3.6.1 KOMPATIBEL)
+    // DATENVERARBEITUNG & PARSING
     // ==========================================================
     function handleData(event) {
         const value = event.target.value;
@@ -554,20 +443,18 @@
                 // --- Live-Daten ---
                 case 'RPM': // Das ist jetzt MOTOR-RPM
                     rpmValue.textContent = value;
-                    updateLiveChart(liveRpmChartInstance, liveRpmData, floatValue);
                     if (isLongrunRunning) { 
                         longrunData.rpm.push(floatValue);
                         longrunData.time.push(Date.now()); 
                     }
                     break;
                 
-                // Fange Rollen-RPM für App-Berechnungen ab
                 case 'R_RPM':
                     currentRpmForCalc = floatValue; // Speichern
                     calculateMetrics(floatValue); // Triggere Speed-Berechnung mit Rollen-RPM
                     break;
                 
-                case 'SPD': break; // Ignoriert, wird in App berechnet (durch R_RPM)
+                case 'SPD': break; // Ignoriert
                 
                 case 'TRQ': // Das ist jetzt MOTOR-DREHMOMENT
                     torqueValue.textContent = value;
@@ -586,7 +473,6 @@
                     break;
                 case 'T_CAR':
                     tempSlotcarValue.textContent = floatValue.toFixed(1);
-                    updateLiveChart(liveTempChartInstance, liveTempData, floatValue);
                     if (isLongrunRunning) { 
                         longrunData.temp.push(floatValue);
                     }
@@ -606,9 +492,9 @@
                 case 'DYN_P': // ERWARTET: LABEL,RPM,TORQUE,POWER,EFF,VIN
                     const dValues = value.split(',');
                     if (dValues.length === 6) { // Muss 6 sein
-                        dynoData.labels.push(parseFloat(dValues[0])); // Motor-RPM
-                        dynoData.rpm.push(parseFloat(dValues[1])); // Motor-RPM
-                        dynoData.torque.push(parseFloat(dValues[2])); // Motor-Drehmoment
+                        dynoData.labels.push(parseFloat(dValues[0])); 
+                        dynoData.rpm.push(parseFloat(dValues[1])); 
+                        dynoData.torque.push(parseFloat(dValues[2])); 
                         dynoData.power.push(parseFloat(dValues[3]));
                         dynoData.efficiency.push(parseFloat(dValues[4]));
                         dynoData.vin.push(parseFloat(dValues[5]));
@@ -630,12 +516,10 @@
                     break;
                 case 'LR_P': // Ist nur ein Taktgeber
                     longrunStatus.textContent = `Long-Run läuft... ${value}s / 120s`;
-                    updateLongrunChart(true); // Partielles Update
                     break;
                 case 'LR_END':
                     isLongrunRunning = false;
                     longrunStatus.textContent = "Long-Run (2 Min) beendet.";
-                    updateLongrunChart(false); // Finales Update
                     break;
             }
         } catch (e) {
@@ -644,7 +528,7 @@
     }
 
     // ==========================================================
-    // METRIK-BERECHNUNGEN (V3.6.1 - Mit Roll-Out)
+    // METRIK-BERECHNUNGEN (V3.6.4 - Mit Roll-Out)
     // ==========================================================
     // HINWEIS: 'rpm' ist hier die ROLLEN-RPM (wird von 'R_RPM:' geliefert)
     function calculateMetrics(rpm) {
@@ -691,7 +575,7 @@
     }
 
     // ==========================================================
-    // ANALYSE & PLOTTING
+    // ANALYSE
     // ==========================================================
     function analyzeAndPlotDyno() {
         if (dynoData.rpm.length === 0) {
@@ -714,88 +598,8 @@
         dynoMaxTorque.textContent = maxT.toFixed(1) + ' mNm';
         dynoMaxTorqueRpm.textContent = `@ ${maxTRpm.toFixed(0)} RPM`;
         dynoStatus.textContent = "Dyno-Lauf abgeschlossen.";
-        updateDynoChart();
     }
-    
-    function updateDynoChart() {
-        const powerData = dynoData.rpm.map((rpm, index) => ({ x: rpm, y: dynoData.power[index] }));
-        const torqueData = dynoData.rpm.map((rpm, index) => ({ x: rpm, y: dynoData.torque[index] }));
-        
-        dynoChartInstance.data.datasets[0].data = powerData;
-        dynoChartInstance.data.datasets[1].data = torqueData;
-        
-        // Setze Checkboxen zurück und plotte neu
-        document.querySelectorAll('#dynoCompareCheckboxes input[type="checkbox"]').forEach(cb => {
-            cb.checked = false;
-        });
-        plotCompareDyno(); // Ruft Plot-Funktion auf, die (jetzt) nichts tun wird
-    }
-    
-    // Neue Overlay-Plot-Funktion
-    function plotCompareDyno() {
-        // 1. Alle alten Vergleichs-Datasets löschen (alle außer den ersten 2)
-        dynoChartInstance.data.datasets.length = 2;
-
-        // 2. Alle angehakten Checkboxen finden
-        const checkedBoxes = document.querySelectorAll('#dynoCompareCheckboxes input[type="checkbox"]:checked');
-        
-        let colorIndex = 0;
-        
-        // 3. Für jede Checkbox die Daten als neue Datasets hinzufügen
-        checkedBoxes.forEach(checkbox => {
-            const garageIndex = parseInt(checkbox.value, 10);
-            const savedRun = garage[garageIndex];
-            if (!savedRun) return;
-            
-            const color = compareColors[colorIndex % compareColors.length];
-            colorIndex++;
-            
-            // Gespeicherte Daten extrahieren
-            const savedPowerData = savedRun.data.rpm.map((rpm, index) => ({ x: rpm, y: savedRun.data.power[index] }));
-            const savedTorqueData = savedRun.data.rpm.map((rpm, index) => ({ x: rpm, y: savedRun.data.torque[index] }));
-
-            // Neues Power-Dataset
-            dynoChartInstance.data.datasets.push({
-                label: `P: ${savedRun.name}`,
-                data: savedPowerData,
-                yAxisID: 'yPower',
-                borderColor: color.border,
-                backgroundColor: color.bg,
-                tension: 0.1,
-                borderDash: [5, 5] // Gestrichelt
-            });
-            
-            // Neues Torque-Dataset
-            dynoChartInstance.data.datasets.push({
-                label: `T: ${savedRun.name}`,
-                data: savedTorqueData,
-                yAxisID: 'yTorque',
-                borderColor: color.border,
-                backgroundColor: color.bg,
-                tension: 0.1,
-                borderDash: [5, 5] // Gestrichelt
-            });
-        });
-
-        // 4. Chart aktualisieren
-        dynoChartInstance.update();
-    }
-    
-    function updateLongrunChart(isPartial) {
-        const rpmData = longrunData.time.map((time, index) => ({ x: time, y: longrunData.rpm[index] }));
-        const tempData = longrunData.time.map((time, index) => ({ x: time, y: longrunData.temp[index] }));
-                
-        longrunChartInstance.data.datasets[0].data = rpmData;
-        longrunChartInstance.data.datasets[1].data = tempData;
-        longrunChartInstance.update(isPartial ? 'none' : 'default');
-    }    
-    
-    function updateLiveChart(chartInstance, dataStore, newValue) {
-        dataStore.data.shift();
-        dataStore.data.push(newValue);
-        chartInstance.update('none');
-    }
-
+   
     // ==========================================================
     // RESET-FUNKTIONEN
     // ==========================================================
@@ -817,36 +621,32 @@
         dynoMaxTorque.textContent = '---';
         dynoMaxTorqueRpm.textContent = '@ --- RPM';
         dynoData = { labels: [], rpm: [], torque: [], power: [], efficiency: [], vin: [] };
-        updateDynoChart(); // Stellt sicher, dass auch Vergleiche gelöscht werden
         
         longrunStatus.textContent = 'Warte auf nächsten Long-Run (2 Min)...';
         longrunData = { time: [], rpm: [], temp: [] };
-        updateLongrunChart(false);
-        
-        liveRpmData.data = Array(LIVE_CHART_MAX_POINTS).fill(null);
-        liveTempData.data = Array(LIVE_CHART_MAX_POINTS).fill(null);
-        liveRpmChartInstance.update('none');
-        liveTempChartInstance.update('none');
     }
 
     // ==========================================================
     // EVENT LISTENER
     // ==========================================================
     window.onload = () => {
-        initCharts();
         loadSettings();
         loadGarage();
     };
     connectButton.addEventListener('click', connectBLE);
     disconnectButton.addEventListener('click', disconnectBLE);
-    saveSettingsButton.addEventListener('click', saveSettings);
     
-    // Event Listener rufen jetzt calculateMetrics auf
+    // FIX 1: Klick auf Button zeigt "Gespeichert!"-Status
+    saveSettingsButton.addEventListener('click', () => saveSettings(true));
+    
+    // FIX 1: Jede Eingabe speichert automatisch (ohne Status)
     [settingRollerDiameter, settingGearRitzel, settingGearKranz, settingTireDiameter].forEach(el => {
-        el.addEventListener('input', () => calculateMetrics(currentRpmForCalc));
+        el.addEventListener('input', () => {
+            calculateMetrics(currentRpmForCalc);
+            saveSettings(false); // Speichert lautlos
+        });
     });
     
-    // (Listener für Compare-Checkboxes wird in populateGarageSelect() hinzugefügt)
     clearGarageButton.addEventListener('click', clearGarage);
         
     saveDynoButton.addEventListener('click', () => {
@@ -867,14 +667,12 @@
         saveModal.style.display = 'none';
     });
     
-    /* HIER DEN PWA-CODE EINFÜGEN (aus Schritt 3 der Anleitung) */
-    /*
+    // PWA Service Worker Registrierung
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js')
             .then(registration => console.log('Service Worker registriert.', registration))
             .catch(error => console.log('Service Worker Registrierung fehlgeschlagen:', error));
     }
-    */
 </script>
 </body>
 </html>
