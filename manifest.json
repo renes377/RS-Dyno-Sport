@@ -1,0 +1,21 @@
+{
+  "name": "Slotcar Testbench",
+  "short_name": "Testbench",
+  "description": "Web-App für die Slotcar Testbench Pro.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#1F2937",
+  "icons": [
+    {
+      "src": "icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

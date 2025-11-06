@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slotcar Testbench Pro V3.6.1</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tab-button.active { background-color: #3B82F6; color: white; }
+        .tab-button.inactive { background-color: #374151; color: #9CA3AF; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .modal {
+            display: none; position: fixed; z-index: 100; left: 0; top: 0;
+            width: 100%; height: 100%; overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+            align-items: center; justify-content: center;
+        }
+        .modal-content { margin: auto; padding: 24px; width: 90%; max-width: 500px; }
+        
+        /* Styling für Checkbox-Liste */
+        .compare-checkbox-item {
+            display: flex;
+            align-items: center;
+            background-color: #4B5563; /* gray-600 */
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+        }
+        .compare-checkbox-item input {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
+    <div class="bg-gray-800 p-6 md:p-8 rounded-2xl shadow-2xl w-full max-w-5xl">
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+            <h1 class="text-3xl font-bold text-white">Slotcar Pro-Testbench <span class="text-blue-400 text-lg">V3.6.1 App</span></h1>
+            <div class="flex gap-2">
+                <button id="connectButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                    Verbinden
+                </button>
+                <button id="disconnectButton" class="hidden bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                    Trennen
+                </button>
+            </div>
+        </div>
+        <div class="mb-6">
+            <p id="statusText" class="text-gray-400 text-center">Nicht verbunden. Bitte auf "Verbinden" klicken.</p>
+        </div>
+        
+        <div class="flex space-x-2 mb-4 p-1 bg-gray-700 rounded-lg">
+            <button id="tab-live" class="tab-button active flex-1 py-2 px-4 rounded-md font-semibold" onclick="showTab('live')">Live-Daten</button>
+            <button id="tab-dyno" class="tab-button inactive flex-1 py-2 px-4 rounded-md font-semibold" onclick="showTab('dyno')">Dyno-Lauf</button>
+            <button id="tab-longrun" class="tab-button inactive flex-1 py-2 px-4 rounded-md font-semibold" onclick="showTab('longrun')">Long-Run (2 Min)</button>
+            <button id="tab-settings" class="tab-button inactive flex-1 py-2 px-4 rounded-md font-semibold" onclick="showTab('settings')">Einstellungen</button>
+        </div>
+
+        <div id="content-live" class="tab-content active">
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div class="bg-gray-700 p-4 rounded-lg text-center">
+                    <span class="text-sm text-blue-300 font-medium uppercase">RPM (Motor)</span>
+                    <p id="rpmValue" class="text-4xl font-black text-white">---</p>
+                </div>
+                <div class="bg-gray-700 p-4 rounded-lg text-center">
+                    <span class="text-sm text-blue-300 font-medium uppercase">Speed (Rolle)</span>
+                    <p id="speedValue" class="text-4xl font-black text-white">---</p>
+                    <span class="text-lg text-gray-300">m/s</span>
+                </div>
+                <div class="bg-gray-700 p-4 rounded-lg text-center">
+                    <span class="text-sm text-blue-300 font-medium uppercase">Drehmoment (Motor)</span>
+                    <p id="torqueValue" class="text-4xl font-black text-white">---</p>
+                    <span class="text-lg text-gray-300">mNm</span>
+                </div>
+                <div class="bg-gray-700 p-4 rounded-lg text-center">
+                    <span class="text-sm text-blue-300 font-medium uppercase">Effizienz</span>
+                    <p id="efficiencyValue" class="text-4xl font-black text-white">---</p>
+                    <span class="text-lg text-gray-300">%</span>
+                </div>
+                <div class="bg-gray-700 p-4 rounded-lg text-center">
+                    <span class="text-sm text-blue-300 font-medium uppercase">V-In</span>
+                    <p id="vinValue" class="text-4xl font-black text-white">---</p>
+                    <span class="text-lg text-gray-300">Volt</span>
+                </div>
+                <div class="bg-gray-700 p-4 rounded-lg text-center">
+                    <span class="text-sm text-yellow-300 font-medium uppercase">Theor. Speed (Strecke)</span>
+                    <p id="calculatedKmhValue" class="text-4xl font-black text-white">---</p>
+                    <span class="text-lg text-gray-300">km/h</span>
+                </div>
+                <div class="bg-gray-700 p-4 rounded-lg text-center col-span-2 md:col-span-3">
+                    <span class="text-sm text-blue-300 font-medium uppercase">Umgebungs- & Temperatur-Daten</span>
+                    <div class="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-lg">
+                        <p class="text-gray-300">Slotcar (°C): <span id="tempSlotcarValue" class="font-bold text-white text-2xl">---</span></p>
+                        <p class="text-gray-300">Lastmotor (°C): <span id="tempMotorValue" class="font-bold text-white text-2xl">---</span></p>
+                        <p class="text-gray-300">Gehäuse (°C): <span id="tempAmbientValue" class="font-bold text-white text-2xl">---</span></p>
+                        <p class="text-gray-300">Luftfeuchte (%): <span id="humidityValue" class="font-bold text-white text-2xl">---</span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div class="bg-gray-700 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold text-center mb-2">Live RPM (Motor) (Letzte 60s)</h3>
+                    <canvas id="liveRpmChart"></canvas>
+                </div>
+                <div class="bg-gray-700 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold text-center mb-2">Live Slotcar-Temp (°C) (Letzte 60s)</h3>
+                    <canvas id="liveTempChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div id="content-dyno" class="tab-content">
+            <p id="dynoStatus" class="text-center text-yellow-400 mb-4">Warte auf nächsten Dyno-Lauf vom Prüfstand...</p>
+            <div class="flex flex-col md:flex-row gap-4 mb-4 bg-gray-700 p-4 rounded-lg items-start justify-between">
+                
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Vergleiche mit (Garage):</label>
+                    <div id="dynoCompareCheckboxes" class="max-h-32 overflow-y-auto">
+                        <p class="text-gray-400">Garage ist leer.</p>
+                    </div>
+                </div>
+
+                <div class="flex-1 flex justify-end gap-2">
+                    <button id="saveDynoButton" class="hidden bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                        Letzten Lauf speichern
+                    </button>
+                    <button id="clearGarageButton" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                        Garage leeren
+                    </button>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div class="bg-gray-700 p-4 rounded-lg text-center">
+                    <span class="text-sm text-blue-300 font-medium uppercase">Max. Leistung (P_in)</span>
+                    <p id="dynoMaxPower" class="text-4xl font-black text-white">---</p>
+                    <span id="dynoMaxPowerRpm" class="text-lg text-gray-300">@ --- RPM</span>
+                </div>
+                <div class="bg-gray-700 p-4 rounded-lg text-center">
+                    <span class="text-sm text-blue-300 font-medium uppercase">Max. Drehmoment (T_out)</span>
+                    <p id="dynoMaxTorque" class="text-4xl font-black text-white">---</p>
+                    <span id="dynoMaxTorqueRpm" class="text-lg text-gray-300">@ --- RPM</span>
+                </div>
+            </div>
+            <div class="bg-gray-700 p-4 rounded-lg">
+                <canvas id="dynoChart"></canvas>
+            </div>
+        </div>
+
+        <div id="content-longrun" class="tab-content">
+            <p id="longrunStatus" class="text-center text-yellow-400 mb-4">Warte auf nächsten Long-Run-Test (2 Min) vom Prüfstand...</p>
+            <div class="bg-gray-700 p-4 rounded-lg">
+                <canvas id="longrunChart"></canvas>
+            </div>
+        </div>
+
+        <div id="content-settings" class="tab-content">
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-gray-700 p-6 rounded-lg">
+                    <h3 class="text-xl font-semibold mb-4 text-blue-300">Prüfstand-Konfiguration</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="settingRollerDiameter" class="block text-sm font-medium text-gray-300">Rollen-Durchmesser (mm)</label>
+                            <input type="number" id="settingRollerDiameter" value="30" class="mt-1 block w-full bg-gray-800 border-gray-600 text-white rounded-md shadow-sm p-2">
+                            <p class="text-xs text-gray-400 mt-1">Beeinflusst die "Speed (Rolle)"-Anzeige.</p>
+                        </div>
+                    </div>
+                </div>
+                                
+                <div class="bg-gray-700 p-6 rounded-lg">
+                    <h3 class="text-xl font-semibold mb-4 text-yellow-300">Theor. Getrieberechner</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="settingGearRitzel" class="block text-sm font-medium text-gray-300">Motor-Ritzel (Zähne)</label>
+                            <input type="number" id="settingGearRitzel" value="10" class="mt-1 block w-full bg-gray-800 border-gray-600 text-white rounded-md shadow-sm p-2">
+                        </div>
+                        <div>
+                            <label for="settingGearKranz" class="block text-sm font-medium text-gray-300">Achse-Kronrad (Zähne)</label>
+                            <input type="number" id="settingGearKranz" value="40" class="mt-1 block w-full bg-gray-800 border-gray-600 text-white rounded-md shadow-sm p-2">
+                        </div>
+                        <div>
+                            <label for="settingTireDiameter" class="block text-sm font-medium text-gray-300">Reifen-Durchmesser (mm)</label>
+                            <input type="number" id="settingTireDiameter" value="24" class="mt-1 block w-full bg-gray-800 border-gray-600 text-white rounded-md shadow-sm p-2">
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 bg-gray-800 p-4 rounded-lg text-center">
+                         <span class="text-sm text-blue-300 font-medium uppercase">Roll-Out</span>
+                         <p id="rolloutValue" class="text-3xl font-black text-white">---</p>
+                         <span class="text-lg text-gray-300">mm / Motorumdrehung</span>
+                    </div>
+                    
+                </div>
+            </div>
+            <div class="mt-6 text-center">
+                <button id="saveSettingsButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300">
+                    Einstellungen Speichern
+                </button>
+            </div>
+        </div>
+    </div> 
+
+    <div id="saveModal" class="modal">
+        <div class="modal-content bg-gray-700 rounded-lg">
+            <h2 class="text-xl font-bold mb-4">Dyno-Lauf Speichern</h2>
+            <p class="mb-2">Gib einen Namen für diesen Lauf ein:</p>
+            <input type="text" id="dynoRunNameInput" placeholder="z.B. Motor 'Roter Teufel' V1" class="block w-full bg-gray-800 border-gray-600 text-white rounded-md shadow-sm p-2 mb-4">
+            <div class="flex justify-end gap-2">
+                <button id="cancelSaveButton" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Abbrechen</button>
+                <button id="confirmSaveButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">Speichern</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // ==========================================================
+    // GLOBALE VARIABLEN & KONSTANTEN
+    // ==========================================================
+    let bluetoothDevice = null, dataCharacteristic = null;
+    const textDecoder = new TextDecoder('utf-8');
+    let incomingDataBuffer = '';
+    const BLE_SERIAL_SERVICE_UUID = '0000ffe0-0000-1000-8000-00805f9b34fb';
+    const BLE_SERIAL_CHAR_UUID = '0000ffe1-0000-1000-8000-00805f9b34fb';
+    
+    let dynoChartInstance = null, longrunChartInstance = null, liveRpmChartInstance = null, liveTempChartInstance = null;
+    
+    // Farben für Dyno-Overlay
+    const compareColors = [
+        { border: '#60A5FA', bg: 'rgba(96, 165, 250, 0.2)' }, // blue-400
+        { border: '#FBBF24', bg: 'rgba(251, 191, 36, 0.2)' }, // yellow-400
+        { border: '#A78BFA', bg: 'rgba(167, 139, 250, 0.2)' }, // violet-400
+        { border: '#F87171', bg: 'rgba(248, 113, 113, 0.2)' }, // red-400 (normal torque color)
+        { border: '#34D399', bg: 'rgba(52, 211, 153, 0.2)' }  // green-400 (normal power color)
+    ];
+    
+    let isDynoRunning = false;
+    let isLongrunRunning = false;
+    
+    let dynoData = { 
+        labels: [], rpm: [], torque: [], power: [], efficiency: [], vin: [] 
+    };
+    let longrunData = { 
+        time: [], rpm: [], temp: [] // T-Car
+    };
+    let liveRpmData = { labels: [], data: [] }; // Zeigt Motor-RPM
+    let liveTempData = { labels: [], data: [] };
+    const LIVE_CHART_MAX_POINTS = 60; 
+    
+    let garage = []; 
+    let currentRpmForCalc = 0; // Speichert die letzte Rollen-RPM
+
+    // ==========================================================
+    // DOM-ELEMENTE
+    // ==========================================================
+    const connectButton = document.getElementById('connectButton');
+    const disconnectButton = document.getElementById('disconnectButton');
+    const saveDynoButton = document.getElementById('saveDynoButton');
+    const clearGarageButton = document.getElementById('clearGarageButton');
+    const saveSettingsButton = document.getElementById('saveSettingsButton');
+    const statusText = document.getElementById('statusText');
+    const rpmValue = document.getElementById('rpmValue');
+    const speedValue = document.getElementById('speedValue');
+    const torqueValue = document.getElementById('torqueValue');
+    const efficiencyValue = document.getElementById('efficiencyValue');
+    const vinValue = document.getElementById('vinValue');
+    const tempAmbientValue = document.getElementById('tempAmbientValue');
+    const tempMotorValue = document.getElementById('tempMotorValue');
+    const tempSlotcarValue = document.getElementById('tempSlotcarValue');
+    const humidityValue = document.getElementById('humidityValue');
+    const calculatedKmhValue = document.getElementById('calculatedKmhValue');
+    const dynoStatus = document.getElementById('dynoStatus');
+    const dynoMaxPower = document.getElementById('dynoMaxPower');
+    const dynoMaxPowerRpm = document.getElementById('dynoMaxPowerRpm');
+    const dynoMaxTorque = document.getElementById('dynoMaxTorque');
+    const dynoMaxTorqueRpm = document.getElementById('dynoMaxTorqueRpm');
+    
+    const dynoCompareCheckboxes = document.getElementById('dynoCompareCheckboxes');
+    const rolloutValue = document.getElementById('rolloutValue');
+    
+    const longrunStatus = document.getElementById('longrunStatus');
+    const settingRollerDiameter = document.getElementById('settingRollerDiameter');
+    const settingGearRitzel = document.getElementById('settingGearRitzel');
+    const settingGearKranz = document.getElementById('settingGearKranz');
+    const settingTireDiameter = document.getElementById('settingTireDiameter');
+    const saveModal = document.getElementById('saveModal');
+    const dynoRunNameInput = document.getElementById('dynoRunNameInput');
+    const cancelSaveButton = document.getElementById('cancelSaveButton');
+    const confirmSaveButton = document.getElementById('confirmSaveButton');
+
+    // ==========================================================
+    // CHART INITIALISIERUNG
+    // ==========================================================
+    const globalChartOptions = {
+        plugins: { 
+             legend: { labels: { color: 'white' } },
+            tooltip: { mode: 'index', intersect: false }
+        },
+        interaction: { mode: 'index', intersect: false },
+        scales: {   
+             x: { ticks: { color: 'white' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+            y: { ticks: { color: 'white' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }
+        }
+    };
+    function initCharts() {
+        // --- 1. Dyno-Chart (Vereinfacht für dynamische Overlays) ---
+        const ctxDyno = document.getElementById('dynoChart').getContext('2d');
+        dynoChartInstance = new Chart(ctxDyno, {
+            type: 'line',
+            data: {
+                datasets: [
+                    { label: 'Leistung (P_in, W)', data: [], yAxisID: 'yPower', borderColor: '#34D399', backgroundColor: 'rgba(52, 211, 153, 0.5)', tension: 0.1 },
+                    { label: 'Drehmoment (T_out, mNm)', data: [], yAxisID: 'yTorque', borderColor: '#F87171', backgroundColor: 'rgba(248, 113, 113, 0.5)', tension: 0.1 }
+                    // Vergleichs-Datasets werden von plotCompareDyno() hinzugefügt
+                ]
+            },
+            options: {
+                ...globalChartOptions,
+                scales: {
+                    x: { type: 'linear', position: 'bottom', title: { display: true, text: 'RPM (Motor)', color: 'white' }, ticks: { color: 'white' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+                    yPower: { position: 'left', title: { display: true, text: 'Leistung (W)', color: 'white' }, ticks: { color: 'white' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+                    yTorque: { position: 'right', title: { display: true, text: 'Drehmoment (mNm)', color: 'white' }, ticks: { color: 'white' }, grid: { drawOnChartArea: false } }
+                }
+            }
+        });
+        
+        // --- 2. Longrun-Chart ---
+        const ctxLongrun = document.getElementById('longrunChart').getContext('2d');
+        longrunChartInstance = new Chart(ctxLongrun, {
+            type: 'line',
+            data: {
+                labels: [], 
+                datasets: [
+                    { label: 'RPM (Motor)', data: [], yAxisID: 'yRPM', borderColor: '#60A5FA', backgroundColor: 'rgba(96, 165, 250, 0.5)', tension: 0.1 },
+                    { label: 'Motor Temp (°C)', data: [], yAxisID: 'yTemp', borderColor: '#F87171', backgroundColor: 'rgba(248, 113, 113, 0.5)', tension: 0.1 }
+                ]
+            },
+            options: { 
+                ...globalChartOptions,
+                scales: {
+                    x: { 
+                        type: 'time', 
+                        time: { unit: 'second' },
+                        title: { display: true, text: 'Zeit', color: 'white' },
+                        ticks: { color: 'white' }, 
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' } 
+                    },
+                    yRPM: { position: 'left', title: { display: true, text: 'RPM', color: 'white' }, ticks: { color: 'white' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+                    yTemp: { position: 'right', title: { display: true, text: 'Temperatur (°C)', color: 'white' }, ticks: { color: 'white' }, grid: { drawOnChartArea: false } }
+                }
+            }
+        });
+        
+        // --- 3. Live-RPM-Chart ---
+        const ctxLiveRpm = document.getElementById('liveRpmChart').getContext('2d');
+        liveRpmChartInstance = new Chart(ctxLiveRpm, {
+            type: 'line',
+            data: { labels: liveRpmData.labels, datasets: [{ label: 'RPM (Motor)', data: liveRpmData.data, borderColor: '#60A5FA', backgroundColor: 'rgba(96, 165, 250, 0.5)', tension: 0.1, pointRadius: 0 }] },
+            options: { ...globalChartOptions, scales: { x: {...globalChartOptions.scales.x, ticks: { display: false }}, y: {...globalChartOptions.scales.y, beginAtZero: true }} }
+        });
+        
+        // --- 4. Live-Temp-Chart ---
+        const ctxLiveTemp = document.getElementById('liveTempChart').getContext('2d');
+        liveRpmChartInstance = new Chart(ctxLiveTemp, {
+            type: 'line',
+            data: { labels: liveTempData.labels, datasets: [{ label: 'Temp (°C)', data: liveTempData.data, borderColor: '#F87171', backgroundColor: 'rgba(248, 113, 113, 0.5)', tension: 0.1, pointRadius: 0 }] },
+            options: { ...globalChartOptions, scales: { x: {...globalChartOptions.scales.x, ticks: { display: false }}, y: {...globalChartOptions.scales.y, beginAtZero: false }} }
+        });
+        
+        for (let i = 0; i < LIVE_CHART_MAX_POINTS; i++) {
+            liveRpmData.labels.push(i);
+            liveRpmData.data.push(null);
+            liveTempData.labels.push(i); liveTempData.data.push(null);
+        }
+        liveRpmChartInstance.update('none');
+        liveTempChartInstance.update('none');
+    }
+
+    // ==========================================================
+    // EINSTELLUNGEN & GARAGE (localStorage)
+    // ==========================================================
+    function saveSettings() {
+        const settings = {
+            rollerDiameter: settingRollerDiameter.value,
+            gearRitzel: settingGearRitzel.value,
+            gearKranz: settingGearKranz.value,
+            tireDiameter: settingTireDiameter.value
+        };
+        localStorage.setItem('slotcarSettingsV27', JSON.stringify(settings));
+        statusText.textContent = 'Einstellungen gespeichert!';
+        setTimeout(() => { if(bluetoothDevice) statusText.textContent = 'Verbunden!'; }, 2000);
+        calculateMetrics(currentRpmForCalc); // Metriken bei Speichern neu berechnen
+    }
+    
+    function loadSettings() {
+        const settings = JSON.parse(localStorage.getItem('slotcarSettingsV27'));
+        if (settings) {
+            settingRollerDiameter.value = settings.rollerDiameter || 30;
+            settingGearRitzel.value = settings.gearRitzel || 10;
+            settingGearKranz.value = settings.gearKranz || 40;
+            settingTireDiameter.value = settings.tireDiameter || 24;
+        }
+        // Metriken (Roll-Out etc.) beim Laden berechnen
+        calculateMetrics(currentRpmForCalc);
+    }
+    
+    function saveToGarage(runName) {
+        if (!runName) { alert("Bitte einen Namen für den Lauf eingeben."); return; }
+        const newRun = { name: runName, data: { ...dynoData } };
+        garage.push(newRun);
+        localStorage.setItem('slotcarGarageV27', JSON.stringify(garage));
+        populateGarageSelect(); 
+    }
+    
+    function loadGarage() {
+        garage = JSON.parse(localStorage.getItem('slotcarGarageV27')) || [];
+        populateGarageSelect();
+    }
+    
+    // Erstellt Checkbox-Liste statt Dropdown
+    function populateGarageSelect() {
+        if (garage.length === 0) {
+            dynoCompareCheckboxes.innerHTML = '<p class="text-gray-400">Garage ist leer.</p>';
+            return;
+        }
+        
+        dynoCompareCheckboxes.innerHTML = ''; // Leeren
+        garage.forEach((run, index) => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'compare-checkbox-item';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `compare-check-${index}`;
+            checkbox.value = index;
+            checkbox.onchange = plotCompareDyno; // Hook
+            
+            const label = document.createElement('label');
+            label.htmlFor = `compare-check-${index}`;
+            label.textContent = run.name;
+            
+            itemDiv.appendChild(checkbox);
+            itemDiv.appendChild(label);
+            dynoCompareCheckboxes.appendChild(itemDiv);
+        });
+    }
+    
+    function clearGarage() {
+        if (confirm("Sicher, dass du alle gespeicherten Läufe (die Garage) löschen willst?")) {
+            garage = [];
+            localStorage.removeItem('slotcarGarageV27');
+            populateGarageSelect();
+            plotCompareDyno(); // Chart aufräumen
+            statusText.textContent = 'Garage geleert!';
+            setTimeout(() => { if(bluetoothDevice) statusText.textContent = 'Verbunden!'; }, 2000);
+        }
+    }
+        
+    // ==========================================================
+    // TAB-LOGIK
+    // ==========================================================
+    function showTab(tabName) {
+        ['live', 'dyno', 'longrun', 'settings'].forEach(tab => {
+            const content = document.getElementById(`content-${tab}`);
+            const button = document.getElementById(`tab-${tab}`);
+            if (content) content.classList.toggle('active', tab === tabName);
+            if (button) {
+                button.classList.toggle('active', tab === tabName);
+                button.classList.toggle('inactive', tab !== tabName);
+            }
+        });
+    }
+
+    // ==========================================================
+    // BLUETOOTH-FUNKTIONEN
+    // ==========================================================
+    async function connectBLE() {
+        try {
+            statusText.textContent = 'Suche nach Geräten...';
+            bluetoothDevice = await navigator.bluetooth.requestDevice({
+                filters: [{ services: [BLE_SERIAL_SERVICE_UUID] }],
+                optionalServices: [BLE_SERIAL_SERVICE_UUID]
+            });
+            bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
+            statusText.textContent = 'Verbinde mit GATT Server...';
+            const server = await bluetoothDevice.gatt.connect();
+            statusText.textContent = 'Hole BLE Service...';
+            const service = await server.getPrimaryService(BLE_SERIAL_SERVICE_UUID);
+            statusText.textContent = 'Hole BLE Characteristic...';
+            dataCharacteristic = await service.getCharacteristic(BLE_SERIAL_CHAR_UUID);
+            statusText.textContent = 'Starte Benachrichtigungen...';
+            await dataCharacteristic.startNotifications();
+            dataCharacteristic.addEventListener('characteristicvaluechanged', handleData);
+            statusText.textContent = 'Verbunden!';
+            connectButton.classList.add('hidden');
+            disconnectButton.classList.remove('hidden');
+        } catch (error) {
+            console.error('Verbindungsfehler:', error);
+            statusText.textContent = `Fehler: ${error.message.split(' (')[0]}`;
+            if (error.name === 'NotFoundError')
+                statusText.textContent = 'Kein Gerät gefunden oder Abbruch.';
+        }
+    }
+    function onDisconnected() {
+        statusText.textContent = 'Verbindung getrennt.';
+        bluetoothDevice = null; dataCharacteristic = null;
+        isDynoRunning = false; isLongrunRunning = false; 
+        connectButton.classList.remove('hidden');
+        disconnectButton.classList.add('hidden');
+        resetAllValues();
+    }
+    function disconnectBLE() {
+        if (bluetoothDevice && bluetoothDevice.gatt.connected) {
+            bluetoothDevice.gatt.disconnect();
+        } else {
+            onDisconnected();
+        }
+    }
+
+    // ==========================================================
+    // DATENVERARBEITUNG & PARSING (V3.6.1 KOMPATIBEL)
+    // ==========================================================
+    function handleData(event) {
+        const value = event.target.value;
+        const text = textDecoder.decode(value);
+        incomingDataBuffer += text;
+        let newlineIndex;
+        while ((newlineIndex = incomingDataBuffer.indexOf('\n')) !== -1) {
+            const line = incomingDataBuffer.substring(0, newlineIndex).trim();
+            incomingDataBuffer = incomingDataBuffer.substring(newlineIndex + 1);
+            if (line) parseAndDisplay(line);
+        }
+    }
+
+    function parseAndDisplay(line) {
+        try {
+            const parts = line.split(':');
+            if (parts.length < 2) return;
+            const key = parts[0];
+            const value = parts[1];
+            const floatValue = parseFloat(value);
+            const intValue = parseInt(value, 10);
+
+            switch (key) {
+                // --- Live-Daten ---
+                case 'RPM': // Das ist jetzt MOTOR-RPM
+                    rpmValue.textContent = value;
+                    updateLiveChart(liveRpmChartInstance, liveRpmData, floatValue);
+                    if (isLongrunRunning) { 
+                        longrunData.rpm.push(floatValue);
+                        longrunData.time.push(Date.now()); 
+                    }
+                    break;
+                
+                // Fange Rollen-RPM für App-Berechnungen ab
+                case 'R_RPM':
+                    currentRpmForCalc = floatValue; // Speichern
+                    calculateMetrics(floatValue); // Triggere Speed-Berechnung mit Rollen-RPM
+                    break;
+                
+                case 'SPD': break; // Ignoriert, wird in App berechnet (durch R_RPM)
+                
+                case 'TRQ': // Das ist jetzt MOTOR-DREHMOMENT
+                    torqueValue.textContent = value;
+                    break;
+                case 'EFF': 
+                    efficiencyValue.textContent = value;
+                    break;
+                case 'VIN': 
+                    vinValue.textContent = floatValue.toFixed(1);
+                    break;
+                case 'T_AMB': 
+                    tempAmbientValue.textContent = floatValue.toFixed(1);
+                    break;
+                case 'T_MOT': 
+                    tempMotorValue.textContent = floatValue.toFixed(1);
+                    break;
+                case 'T_CAR':
+                    tempSlotcarValue.textContent = floatValue.toFixed(1);
+                    updateLiveChart(liveTempChartInstance, liveTempData, floatValue);
+                    if (isLongrunRunning) { 
+                        longrunData.temp.push(floatValue);
+                    }
+                    break;
+                case 'HUM':
+                    humidityValue.textContent = value;
+                    break;
+                
+                // --- Dyno-Lauf (V8-Protokoll) ---
+                case 'DYN_START':
+                    dynoData = { labels: [], rpm: [], torque: [], power: [], efficiency: [], vin: [] };
+                    isDynoRunning = true;
+                    dynoStatus.textContent = "Dyno-Lauf wird aufgezeichnet...";
+                    saveDynoButton.classList.add('hidden'); 
+                    showTab('dyno');
+                    break;
+                case 'DYN_P': // ERWARTET: LABEL,RPM,TORQUE,POWER,EFF,VIN
+                    const dValues = value.split(',');
+                    if (dValues.length === 6) { // Muss 6 sein
+                        dynoData.labels.push(parseFloat(dValues[0])); // Motor-RPM
+                        dynoData.rpm.push(parseFloat(dValues[1])); // Motor-RPM
+                        dynoData.torque.push(parseFloat(dValues[2])); // Motor-Drehmoment
+                        dynoData.power.push(parseFloat(dValues[3]));
+                        dynoData.efficiency.push(parseFloat(dValues[4]));
+                        dynoData.vin.push(parseFloat(dValues[5]));
+                    }
+                    break;
+                case 'DYN_END':
+                    isDynoRunning = false;
+                    dynoStatus.textContent = "Lauf beendet. Analysiere...";
+                    analyzeAndPlotDyno(); 
+                    saveDynoButton.classList.remove('hidden'); 
+                    break;
+                
+                // --- Long-Run (V8-Protokoll) ---
+                case 'LR_START':
+                    longrunData = { time: [], rpm: [], temp: [] };
+                    isLongrunRunning = true;
+                    longrunStatus.textContent = "Long-Run (2 Min) wird aufgezeichnet...";
+                    showTab('longrun');
+                    break;
+                case 'LR_P': // Ist nur ein Taktgeber
+                    longrunStatus.textContent = `Long-Run läuft... ${value}s / 120s`;
+                    updateLongrunChart(true); // Partielles Update
+                    break;
+                case 'LR_END':
+                    isLongrunRunning = false;
+                    longrunStatus.textContent = "Long-Run (2 Min) beendet.";
+                    updateLongrunChart(false); // Finales Update
+                    break;
+            }
+        } catch (e) {
+            console.error("Fehler beim Parsen der Daten:", e, line);
+        }
+    }
+
+    // ==========================================================
+    // METRIK-BERECHNUNGEN (V3.6.1 - Mit Roll-Out)
+    // ==========================================================
+    // HINWEIS: 'rpm' ist hier die ROLLEN-RPM (wird von 'R_RPM:' geliefert)
+    function calculateMetrics(rpm) {
+        if (isNaN(rpm)) rpm = 0;
+        
+        // 1. Speed (Rolle)
+        try {
+            const rollerDiameterM = parseFloat(settingRollerDiameter.value) / 1000;
+            const rollerCircumferenceM = rollerDiameterM * Math.PI;
+            const newSpeedMs = (rpm / 60) * rollerCircumferenceM;
+            speedValue.textContent = newSpeedMs.toFixed(1);
+        } catch (e) { speedValue.textContent = "ERR"; }
+        
+        // 2. Theor. Speed (km/h)
+        let speed_kmh = 0;
+        try {
+            const tireDiameterM = parseFloat(settingTireDiameter.value) / 1000;
+            if (tireDiameterM > 0) {
+                const wheelRPM = rpm; // Tacho-RPM = Rollen-RPM = Rad-RPM
+                const tireCircumferenceM = tireDiameterM * Math.PI;
+                const speed_ms = (wheelRPM / 60) * tireCircumferenceM;
+                speed_kmh = speed_ms * 3.6;
+                calculatedKmhValue.textContent = speed_kmh.toFixed(1);
+            } else {
+                calculatedKmhValue.textContent = "---";
+            }
+        } catch (e) { calculatedKmhValue.textContent = "ERR"; }
+        
+        // 3. Roll-Out Rechner
+        try {
+            const ritzel = parseFloat(settingGearRitzel.value);
+            const kranz = parseFloat(settingGearKranz.value);
+            const tireDiameterMM = parseFloat(settingTireDiameter.value);
+            
+            if (ritzel > 0 && kranz > 0 && tireDiameterMM > 0) {
+                const tireCircumferenceMM = tireDiameterMM * Math.PI;
+                const gearRatio = kranz / ritzel;
+                const rollout = tireCircumferenceMM / gearRatio;
+                rolloutValue.textContent = rollout.toFixed(2);
+            } else {
+                rolloutValue.textContent = "---";
+            }
+        } catch (e) { rolloutValue.textContent = "ERR"; }
+    }
+
+    // ==========================================================
+    // ANALYSE & PLOTTING
+    // ==========================================================
+    function analyzeAndPlotDyno() {
+        if (dynoData.rpm.length === 0) {
+            dynoStatus.textContent = "Keine Dyno-Daten empfangen.";
+            return;
+        }
+        let maxP = 0, maxPRpm = 0, maxT = 0, maxTRpm = 0;
+        for (let i = 0; i < dynoData.rpm.length; i++) {
+            if (dynoData.power[i] > maxP) {
+                maxP = dynoData.power[i];
+                maxPRpm = dynoData.rpm[i];
+            }
+            if (dynoData.torque[i] > maxT) {
+                maxT = dynoData.torque[i];
+                maxTRpm = dynoData.rpm[i];
+            }
+        }
+        dynoMaxPower.textContent = maxP.toFixed(2) + ' W';
+        dynoMaxPowerRpm.textContent = `@ ${maxPRpm.toFixed(0)} RPM`;
+        dynoMaxTorque.textContent = maxT.toFixed(1) + ' mNm';
+        dynoMaxTorqueRpm.textContent = `@ ${maxTRpm.toFixed(0)} RPM`;
+        dynoStatus.textContent = "Dyno-Lauf abgeschlossen.";
+        updateDynoChart();
+    }
+    
+    function updateDynoChart() {
+        const powerData = dynoData.rpm.map((rpm, index) => ({ x: rpm, y: dynoData.power[index] }));
+        const torqueData = dynoData.rpm.map((rpm, index) => ({ x: rpm, y: dynoData.torque[index] }));
+        
+        dynoChartInstance.data.datasets[0].data = powerData;
+        dynoChartInstance.data.datasets[1].data = torqueData;
+        
+        // Setze Checkboxen zurück und plotte neu
+        document.querySelectorAll('#dynoCompareCheckboxes input[type="checkbox"]').forEach(cb => {
+            cb.checked = false;
+        });
+        plotCompareDyno(); // Ruft Plot-Funktion auf, die (jetzt) nichts tun wird
+    }
+    
+    // Neue Overlay-Plot-Funktion
+    function plotCompareDyno() {
+        // 1. Alle alten Vergleichs-Datasets löschen (alle außer den ersten 2)
+        dynoChartInstance.data.datasets.length = 2;
+
+        // 2. Alle angehakten Checkboxen finden
+        const checkedBoxes = document.querySelectorAll('#dynoCompareCheckboxes input[type="checkbox"]:checked');
+        
+        let colorIndex = 0;
+        
+        // 3. Für jede Checkbox die Daten als neue Datasets hinzufügen
+        checkedBoxes.forEach(checkbox => {
+            const garageIndex = parseInt(checkbox.value, 10);
+            const savedRun = garage[garageIndex];
+            if (!savedRun) return;
+            
+            const color = compareColors[colorIndex % compareColors.length];
+            colorIndex++;
+            
+            // Gespeicherte Daten extrahieren
+            const savedPowerData = savedRun.data.rpm.map((rpm, index) => ({ x: rpm, y: savedRun.data.power[index] }));
+            const savedTorqueData = savedRun.data.rpm.map((rpm, index) => ({ x: rpm, y: savedRun.data.torque[index] }));
+
+            // Neues Power-Dataset
+            dynoChartInstance.data.datasets.push({
+                label: `P: ${savedRun.name}`,
+                data: savedPowerData,
+                yAxisID: 'yPower',
+                borderColor: color.border,
+                backgroundColor: color.bg,
+                tension: 0.1,
+                borderDash: [5, 5] // Gestrichelt
+            });
+            
+            // Neues Torque-Dataset
+            dynoChartInstance.data.datasets.push({
+                label: `T: ${savedRun.name}`,
+                data: savedTorqueData,
+                yAxisID: 'yTorque',
+                borderColor: color.border,
+                backgroundColor: color.bg,
+                tension: 0.1,
+                borderDash: [5, 5] // Gestrichelt
+            });
+        });
+
+        // 4. Chart aktualisieren
+        dynoChartInstance.update();
+    }
+    
+    function updateLongrunChart(isPartial) {
+        const rpmData = longrunData.time.map((time, index) => ({ x: time, y: longrunData.rpm[index] }));
+        const tempData = longrunData.time.map((time, index) => ({ x: time, y: longrunData.temp[index] }));
+                
+        longrunChartInstance.data.datasets[0].data = rpmData;
+        longrunChartInstance.data.datasets[1].data = tempData;
+        longrunChartInstance.update(isPartial ? 'none' : 'default');
+    }    
+    
+    function updateLiveChart(chartInstance, dataStore, newValue) {
+        dataStore.data.shift();
+        dataStore.data.push(newValue);
+        chartInstance.update('none');
+    }
+
+    // ==========================================================
+    // RESET-FUNKTIONEN
+    // ==========================================================
+    function resetAllValues() {
+        rpmValue.textContent = '---';
+        speedValue.textContent = '---';
+        torqueValue.textContent = '---';
+        efficiencyValue.textContent = '---';
+        vinValue.textContent = '---';
+        tempAmbientValue.textContent = '---';
+        tempMotorValue.textContent = '---';
+        tempSlotcarValue.textContent = '---'; 
+        humidityValue.textContent = '---'; 
+        calculatedKmhValue.textContent = '---';
+        
+        dynoStatus.textContent = 'Warte auf nächsten Dyno-Lauf...';
+        dynoMaxPower.textContent = '---';
+        dynoMaxPowerRpm.textContent = '@ --- RPM';
+        dynoMaxTorque.textContent = '---';
+        dynoMaxTorqueRpm.textContent = '@ --- RPM';
+        dynoData = { labels: [], rpm: [], torque: [], power: [], efficiency: [], vin: [] };
+        updateDynoChart(); // Stellt sicher, dass auch Vergleiche gelöscht werden
+        
+        longrunStatus.textContent = 'Warte auf nächsten Long-Run (2 Min)...';
+        longrunData = { time: [], rpm: [], temp: [] };
+        updateLongrunChart(false);
+        
+        liveRpmData.data = Array(LIVE_CHART_MAX_POINTS).fill(null);
+        liveTempData.data = Array(LIVE_CHART_MAX_POINTS).fill(null);
+        liveRpmChartInstance.update('none');
+        liveTempChartInstance.update('none');
+    }
+
+    // ==========================================================
+    // EVENT LISTENER
+    // ==========================================================
+    window.onload = () => {
+        initCharts();
+        loadSettings();
+        loadGarage();
+    };
+    connectButton.addEventListener('click', connectBLE);
+    disconnectButton.addEventListener('click', disconnectBLE);
+    saveSettingsButton.addEventListener('click', saveSettings);
+    
+    // Event Listener rufen jetzt calculateMetrics auf
+    [settingRollerDiameter, settingGearRitzel, settingGearKranz, settingTireDiameter].forEach(el => {
+        el.addEventListener('input', () => calculateMetrics(currentRpmForCalc));
+    });
+    
+    // (Listener für Compare-Checkboxes wird in populateGarageSelect() hinzugefügt)
+    clearGarageButton.addEventListener('click', clearGarage);
+        
+    saveDynoButton.addEventListener('click', () => {
+        if (dynoData.rpm.length === 0) {
+            alert("Es gibt keinen aktuellen Lauf zum Speichern.");
+            return;
+        }
+        dynoRunNameInput.value = ''; 
+        saveModal.style.display = 'flex';
+        dynoRunNameInput.focus();
+    });
+    cancelSaveButton.addEventListener('click', () => {
+        saveModal.style.display = 'none';
+    });
+    confirmSaveButton.addEventListener('click', () => {
+        const runName = dynoRunNameInput.value;
+        saveToGarage(runName);
+        saveModal.style.display = 'none';
+    });
+    
+    /* HIER DEN PWA-CODE EINFÜGEN (aus Schritt 3 der Anleitung) */
+    /*
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+            .then(registration => console.log('Service Worker registriert.', registration))
+            .catch(error => console.log('Service Worker Registrierung fehlgeschlagen:', error));
+    }
+    */
+</script>
+</body>
+</html>
