@@ -1,8 +1,7 @@
-
 {
-  "name": "Slotcar Testbench",
-  "short_name": "Testbench",
-  "description": "Web-App für die Slotcar Testbench Pro.",
+  "name": "RS Dyno Sport",
+  "short_name": "RS Dyno",
+  "description": "Web-App für den RS Dyno Sport.",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#111827",
