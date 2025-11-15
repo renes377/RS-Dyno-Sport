@@ -148,7 +148,16 @@
 
         <div id="content-settings" class="tab-content">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-gray-700 p-6 rounded-lg md:col-span-2"> <h3 class="text-xl font-semibold mb-4 text-yellow-300">Theor. Getrieberechner</h3>
+                
+                <div class="bg-gray-700 p-6 rounded-lg md:col-span-2">
+                    <h3 class="text-xl font-semibold mb-4 text-yellow-300">Getrieberechner</h3>
+                    
+                    <div class="mb-6 bg-gray-800 p-4 rounded-lg text-center">
+                        <span class="text-sm text-blue-300 font-medium uppercase">Roll-Out</span>
+                        <p id="rolloutValue" class="text-3xl font-black text-white">---</p>
+                        <span class="text-lg text-gray-300">mm / Motorumdrehung</span>
+                    </div>
+
                     <div class="space-y-4">
                         <div>
                             <label for="settingGearRitzel" class="block text-sm font-medium text-gray-300">Motor-Ritzel (Zähne)</label>
@@ -163,12 +172,23 @@
                             <input type="number" id="settingTireDiameter" value="24" class="mt-1 block w-full bg-gray-800 border-gray-600 text-white rounded-md shadow-sm p-2">
                         </div>
                     </div>
+                </div>
+
+                <div class="bg-gray-700 p-6 rounded-lg md:col-span-2">
+                     <h3 class="text-xl font-semibold mb-4 text-green-300">Motor-Drehzahl-Rechner</h3>
+                     <div class="space-y-4">
+                        <div>
+                            <label for="manualRollerRpm" class="block text-sm font-medium text-gray-300">Max. Rollen-Drehzahl (U/min)</label>
+                            <input type="number" id="manualRollerRpm" placeholder="z.B. 8000" class="mt-1 block w-full bg-gray-800 border-gray-600 text-white rounded-md shadow-sm p-2">
+                        </div>
+                    </div>
                     <div class="mt-6 bg-gray-800 p-4 rounded-lg text-center">
-                        <span class="text-sm text-blue-300 font-medium uppercase">Roll-Out</span>
-                        <p id="rolloutValue" class="text-3xl font-black text-white">---</p>
-                        <span class="text-lg text-gray-300">mm / Motorumdrehung</span>
+                        <span class="text-sm text-blue-300 font-medium uppercase">Berechnete Motor-Drehzahl</span>
+                        <p id="calculatedMotorRpm" class="text-3xl font-black text-white">---</p>
+                        <span class="text-lg text-gray-300">U/min</span>
                     </div>
                 </div>
+
             </div>
 
             <div class="mt-6 text-center">
@@ -177,7 +197,8 @@
                 </button>
             </div>
 
-            <div class="mt-8 text-center"> <button id="updateAppButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 text-sm">
+            <div class="mt-8 text-center">
+                <button id="updateAppButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 text-sm">
                     App auf Updates prüfen
                 </button>
             </div>
@@ -262,6 +283,10 @@
     const cancelSaveButton = document.getElementById('cancelSaveButton');
     const confirmSaveButton = document.getElementById('confirmSaveButton');
     const updateAppButton = document.getElementById('updateAppButton'); // NEU
+    
+    // NEUE DOM-ELEMENTE FÜR RECHNER
+    const manualRollerRpm = document.getElementById('manualRollerRpm');
+    const calculatedMotorRpm = document.getElementById('calculatedMotorRpm');
 
     // ==========================================================
     // CHART INITIALISIERUNG (Angepasst V3.6.6)
@@ -607,6 +632,22 @@
                 rolloutValue.textContent = "---";
             }
         } catch (e) { rolloutValue.textContent = "ERR"; }
+
+        // 4. NEU: Motor-Drehzahl-Rechner
+        try {
+            const ritzel = parseFloat(settingGearRitzel.value);
+            const kranz = parseFloat(settingGearKranz.value);
+            const rollerRpmInput = parseFloat(manualRollerRpm.value);
+
+            if (ritzel > 0 && kranz > 0 && rollerRpmInput > 0) {
+                const motorRpm = rollerRpmInput * (kranz / ritzel);
+                calculatedMotorRpm.textContent = motorRpm.toFixed(0);
+            } else {
+                calculatedMotorRpm.textContent = "---";
+            }
+        } catch (e) {
+            calculatedMotorRpm.textContent = "ERR";
+        }
     }
 
     // ==========================================================
@@ -746,12 +787,17 @@
     // Einstellungen (Unverändert)
     saveSettingsButton.addEventListener('click', () => saveSettings(true));
     
-    // GEÄNDERT: settingRollerDiameter entfernt
+    // GEÄNDERT: settingRollerRpm entfernt
     [settingGearRitzel, settingGearKranz, settingTireDiameter].forEach(el => {
         el.addEventListener('input', () => {
             calculateMetrics(currentRpmForCalc);
             saveSettings(false); 
         });
+    });
+
+    // NEU: Listener für den neuen Rechner
+    manualRollerRpm.addEventListener('input', () => {
+        calculateMetrics(currentRpmForCalc); // Nur Metriken neu berechnen, nicht speichern
     });
 
     // Garage-Modal (Unverändert)
@@ -844,5 +890,3 @@
 </script>
 </body>
 </html>
-
-
