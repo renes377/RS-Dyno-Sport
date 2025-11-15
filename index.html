@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="de"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RS Dyno Sport V3.6.7</title>
+    <title>RS Dyno Sport V3.6.6</title>
         
     <link rel="manifest" href="manifest.json">
         
@@ -148,14 +148,7 @@
 
         <div id="content-settings" class="tab-content">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-gray-700 p-6 rounded-lg">
-                    <h3 class="text-xl font-semibold mb-4 text-blue-300">Prüfstand-Konfiguration</h3>
-                    <div class="space-y-4">
-                        </div>
-                </div>
-                
-                <div class="bg-gray-700 p-6 rounded-lg">
-                    <h3 class="text-xl font-semibold mb-4 text-yellow-300">Theor. Getrieberechner</h3>
+                <div class="bg-gray-700 p-6 rounded-lg md:col-span-2"> <h3 class="text-xl font-semibold mb-4 text-yellow-300">Theor. Getrieberechner</h3>
                     <div class="space-y-4">
                         <div>
                             <label for="settingGearRitzel" class="block text-sm font-medium text-gray-300">Motor-Ritzel (Zähne)</label>
@@ -178,22 +171,17 @@
                 </div>
             </div>
 
-            <div class="mt-6 bg-gray-700 p-6 rounded-lg">
-                <h3 class="text-xl font-semibold mb-4 text-green-300">App-Verwaltung</h3>
-                <p class="text-gray-400 mb-4 text-sm">
-                    Erzwingt ein Update der PWA. Die App lädt die neuesten Dateien von GitHub
-                    und startet neu. (Internetverbindung erforderlich!)
-                </p>
-                <button id="updateAppButton" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300">
-                    Auf Updates prüfen & Neu laden
+            <div class="mt-6 text-center">
+                <button id="saveSettingsButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300">
+                    Einstellungen Speichern und Übertragen
                 </button>
             </div>
 
-            <div class="mt-6 text-center">
-                <button id="saveSettingsButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300">
-                    Einstellungen Speichern
+            <div class="mt-8 text-center"> <button id="updateAppButton" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 text-sm">
+                    App auf Updates prüfen
                 </button>
             </div>
+
         </div>
 
         <p class="text-center text-gray-500 text-xs mt-6">Developed by RS</p>
@@ -334,8 +322,12 @@
             tireDiameter: settingTireDiameter.value
         };
         localStorage.setItem('slotcarSettingsV27', JSON.stringify(settings));
+        
+        // NEU: Daten auch an PWA senden, wenn verbunden
+        sendSettingsToPWA();
+
         if (showStatus) {
-            statusText.textContent = 'Einstellungen gespeichert!';
+            statusText.textContent = 'Einstellungen gespeichert & übertragen!'; // Text geändert
             setTimeout(() => { 
                 if(webSocket) statusText.textContent = 'Verbunden!'; // NEU: webSocket
                 else statusText.textContent = 'Nicht verbunden.';
@@ -438,6 +430,7 @@
             connectButton.classList.add('hidden');
             disconnectButton.classList.remove('hidden');
             resetAlarmButton.classList.remove('hidden'); // NEU: Alarm-Reset anzeigen
+            // Lade-Einstellungen an STM32 senden, falls dieser sie braucht
             sendSettingsToPWA();
         };
 
@@ -480,9 +473,14 @@
         }
     }
 
-    // NEU: Funktion zum Senden der PWA-Einstellungen (ersetzt PWA-Sync)
+    // NEU: Funktion zum Senden der PWA-Einstellungen
     function sendSettingsToPWA() {
-        // Vorerst senden wir nur die lokalen PWA-Settings an den ESP
+        // Diese Funktion wird nun von saveSettings() aufgerufen
+        // Der STM32-Code (V3.6.6) erwartet diese Befehle (SET:...) nicht,
+        // aber wir implementieren es für zukünftige Versionen oder falls der ESP sie braucht.
+        sendWebSocketMessage(`SET:RITZEL:${settingGearRitzel.value}`);
+        sendWebSocketMessage(`SET:KRANZ:${settingGearKranz.value}`);
+        sendWebSocketMessage(`SET:REIFEN:${Math.round(parseFloat(settingTireDiameter.value) * 10)}`);
     }
 
     // ==========================================================
@@ -846,6 +844,3 @@
 </script>
 </body>
 </html>
-
-
-
