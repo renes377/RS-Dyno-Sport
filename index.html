@@ -451,6 +451,24 @@
         const item = rsDb.strecken.find(s => s.id === id);
         return item ? item.name : 'Unbekannte Strecke';
     }
+    // NEU: Datumsformatierer
+    function formatDate(dateString) {
+        if (!dateString) return '---';
+        const [year, month, day] = dateString.split('-');
+        if (!year || !month || !day) return dateString; // Fallback
+        return `${day}.${month}.${year}`;
+    }
+    // NEU: CSV-Datums-Re-Formatierer
+    function reformatCsvDate(dateString) {
+        if (!dateString) return new Date().toISOString().split('T')[0];
+        if (dateString.includes('-')) return dateString; // Bereits YYYY-MM-DD
+        const parts = dateString.match(/(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})/); // Akzeptiert . oder /
+        if (parts && parts.length === 4) {
+            // parts[1] = DD, parts[2] = MM, parts[3] = YYYY
+            return `${parts[3]}-${parts[2].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+        }
+        return dateString; // Fallback
+    }
 
 
     // ==========================================================
@@ -1088,7 +1106,7 @@
         filteredEvents.forEach(event => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${event.datum}</td>
+                <td>${formatDate(event.datum)}</td>
                 <td>${event.name}</td>
                 <td>${event.klasse}</td>
                 <td>${getStreckeNameById(event.strecke)}</td>
@@ -1372,7 +1390,7 @@
                          importedRows.forEach(row => {
                             const newEvent = { 
                                 id: `event_${Date.now()}_${addedCount}`,
-                                datum: row.Datum || row.datum,
+                                datum: reformatCsvDate(row.Datum || row.datum), // KORRIGIERT
                                 name: row.Event || row.name,
                                 klasse: row.Klasse || row.klasse,
                                 strecke: row.Strecke || row.strecke, 
@@ -1700,11 +1718,11 @@
     }
 
     // ==========================================================
-    // EVENT LISTENER (INIT) - KORRIGIERT
+    // EVENT LISTENER (INIT)
     // ==========================================================
     window.onload = () => {
         initDatabase(); 
-        initDynoChart(); // Lade Dyno-Chart, da es der Standard-Tab ist
+        initDynoChart(); 
         loadSettings(); 
         loadGarage();   
         renderAutosList(); 
@@ -1746,6 +1764,7 @@
     cancelDynoSaveButton.addEventListener('click', () => { dynoSaveModal.style.display = 'none'; });
     dynoSaveForm.addEventListener('submit', handleSaveDynoRun);
 
+    // KORRIGIERT: Event-Listener für Tabellen-Buttons
     // Auto-Logbuch Listeners
     addAutoButton.addEventListener('click', () => showAutosModal());
     cancelAutoButton.addEventListener('click', () => { autosModal.style.display = 'none'; });
@@ -1788,7 +1807,7 @@
         if (deleteBtn) deleteStrecke(deleteBtn.dataset.id);
     });
 
-    // Events-Logbuch Listeners (KORRIGIERT)
+    // Events-Logbuch Listeners
     addEventButton.addEventListener('click', () => showEventsModal());
     cancelEventButton.addEventListener('click', () => { eventsModal.style.display = 'none'; });
     eventsForm.addEventListener('submit', handleSaveEvent);
@@ -1797,15 +1816,9 @@
     eventCsvImportButton.addEventListener('click', () => importFromCsv('events'));
     eventsTbody.addEventListener('click', function(e) {
         const editBtn = e.target.closest('.edit-event-btn');
-        if (editBtn) {
-            e.preventDefault();
-            showEventsModal(editBtn.dataset.id);
-        }
+        if (editBtn) showEventsModal(editBtn.dataset.id);
         const deleteBtn = e.target.closest('.delete-event-btn');
-        if (deleteBtn) {
-            e.preventDefault();
-            deleteEvent(deleteBtn.dataset.id);
-        }
+        if (deleteBtn) deleteEvent(deleteBtn.dataset.id);
     });
 
     // PWA Service Worker
