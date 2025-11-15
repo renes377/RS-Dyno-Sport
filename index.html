@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="de"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RS Dyno Sport V3.6.7</title>
+    <title>RS Dyno Sport V3.6.6</title>
         
     <link rel="manifest" href="manifest.json">
         
@@ -57,10 +57,16 @@
             <p id="statusText" class="text-gray-400 text-center">Nicht verbunden. (Handy muss im "Testbench_WLAN" sein)</p>
         </div>
                         
-        <div class="grid grid-cols-3 md:grid-cols-3 gap-2 mb-4 p-1 bg-gray-700 rounded-lg">
-            <button id="tab-live" class="tab-button active py-2 px-4 rounded-md font-semibold" onclick="showTab('live')">Live</button>
-            <button id="tab-dyno" class="tab-button inactive py-2 px-4 rounded-md font-semibold" onclick="showTab('dyno')">Dyno</button>
-            <button id="tab-settings" class="tab-button inactive py-2 px-4 rounded-md font-semibold" onclick="showTab('settings')">Settings</button>
+        <div class="grid grid-cols-3 md:grid-cols-6 gap-2 mb-4 p-1 bg-gray-700 rounded-lg">
+            <button id="tab-live" class="tab-button active py-2 px-4 rounded-md font-semibold text-sm" onclick="showTab('live')">Live</button>
+            <button id="tab-dyno" class="tab-button inactive py-2 px-4 rounded-md font-semibold text-sm" onclick="showTab('dyno')">Dyno</button>
+            
+            <button id="tab-getriebe" class="tab-button inactive py-2 px-4 rounded-md font-semibold text-sm" onclick="showTab('getriebe')">Getriebe</button>
+            
+            <button id="tab-autos" class="tab-button inactive py-2 px-4 rounded-md font-semibold text-sm" onclick="showTab('autos')">Autos</button>
+            <button id="tab-motoren" class="tab-button inactive py-2 px-4 rounded-md font-semibold text-sm" onclick="showTab('motoren')">Motoren</button>
+            <button id="tab-strecken" class="tab-button inactive py-2 px-4 rounded-md font-semibold text-sm" onclick="showTab('strecken')">Strecken</button>
+            <button id="tab-events" class="tab-button inactive py-2 px-4 rounded-md font-semibold text-sm col-span-3 md:col-span-1" onclick="showTab('events')">Events</button>
         </div>
 
         <div id="content-live" class="tab-content active">
@@ -146,7 +152,7 @@
             </div>
         </div>
 
-        <div id="content-settings" class="tab-content">
+        <div id="content-getriebe" class="tab-content">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 <div class="bg-gray-700 p-6 rounded-lg md:col-span-2">
@@ -204,6 +210,35 @@
             </div>
 
         </div>
+
+        <div id="content-autos" class="tab-content">
+             <div class="bg-gray-700 p-6 rounded-lg">
+                <h3 class="text-xl font-semibold mb-4 text-blue-300">Autos-Datenbank</h3>
+                <p class="text-gray-400">Hier können zukünftig Autos verwaltet werden.</p>
+                </div>
+        </div>
+
+        <div id="content-motoren" class="tab-content">
+             <div class="bg-gray-700 p-6 rounded-lg">
+                <h3 class="text-xl font-semibold mb-4 text-blue-300">Motoren-Datenbank</h3>
+                <p class="text-gray-400">Hier können zukünftig Motoren verwaltet werden.</p>
+                </div>
+        </div>
+
+        <div id="content-strecken" class="tab-content">
+             <div class="bg-gray-700 p-6 rounded-lg">
+                <h3 class="text-xl font-semibold mb-4 text-blue-300">Strecken-Datenbank</h3>
+                <p class="text-gray-400">Hier können zukünftig Strecken verwaltet werden.</p>
+                </div>
+        </div>
+        
+        <div id="content-events" class="tab-content">
+             <div class="bg-gray-700 p-6 rounded-lg">
+                <h3 class="text-xl font-semibold mb-4 text-blue-300">Event-Datenbank</h3>
+                <p class="text-gray-400">Hier können zukünftig Events verwaltet werden.</p>
+                </div>
+        </div>
+
 
         <p class="text-center text-gray-500 text-xs mt-6">Developed by RS</p>
     </div>
@@ -426,7 +461,8 @@
     // TAB-LOGIK (Angepasst V3.6.6)
     // ==========================================================
     function showTab(tabName) {
-        ['live', 'dyno', 'settings'].forEach(tab => { // 'longrun' entfernt
+        // GEÄNDERT: Array um neue Tabs erweitert
+        ['live', 'dyno', 'getriebe', 'autos', 'motoren', 'strecken', 'events'].forEach(tab => {
             const content = document.getElementById(`content-${tab}`);
             const button = document.getElementById(`tab-${tab}`);
             if (content) content.classList.toggle('active', tab === tabName);
@@ -890,6 +926,3 @@
 </script>
 </body>
 </html>
-
-
-
