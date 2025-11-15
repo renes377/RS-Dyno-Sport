@@ -1,0 +1,21 @@
+{
+  "name": "RS Dyno Sport",
+  "short_name": "RS Dyno",
+  "description": "Web-App für den RS Dyno Sport.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#1F2937",
+  "icons": [
+    {
+      "src": "icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
