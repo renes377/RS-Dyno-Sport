@@ -1,0 +1,40 @@
+body { font-family: 'Inter', sans-serif; }
+
+/* STYLES AUS V3.6.7.19 & V4.5 */
+.main-tab-button.active { background-color: #1F2937; color: white; border-bottom: 3px solid #3B82F6; }
+.main-tab-button.inactive { background-color: #374151; color: #9CA3AF; }
+.tab-button.active { background-color: #3B82F6; color: white; }
+.tab-button.inactive { background-color: #374151; color: #9CA3AF; }
+
+.main-content-area.active { display: block; }
+.main-content-area.inactive { display: none; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+.modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
+.modal-content { margin: auto; padding: 24px; width: 90%; max-width: 500px; }
+.modal-content-large { max-width: 800px; }
+
+.compare-checkbox-item { display: flex; align-items: center; background-color: #4B5563; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; }
+.compare-checkbox-item input { margin-right: 10px; width: 18px; height: 18px; }
+
+.logbook-table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 10px; }
+.logbook-table { width: 100%; min-width: 800px; border-collapse: collapse; }
+.logbook-table th, .logbook-table td { border: 1px solid #4B5563; padding: 6px 8px; text-align: left; font-size: 0.85rem; line-height: 1.25rem; white-space: nowrap; }
+.logbook-table th { background-color: #374151; font-weight: 600; cursor: pointer; user-select: none; }
+.logbook-table th:hover { background-color: #4B5563; }
+.logbook-table tbody tr:nth-child(odd) { background-color: #1f2937; }
+.logbook-table tbody tr:nth-child(even) { background-color: #374151; }
+.logbook-table tbody tr:hover { background-color: #4B5563; }
+
+/* Vorher: gap: 8px */
+.logbook-table-actions { 
+    display: flex; 
+    gap: 32px; /* Mehr Abstand zwischen den Icons */
+    justify-content: center; 
+}
+.hidden-file-input { display: none; }
+/* Neuer Zusatz für Meisterschafts-Tabellen */
+.rs-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.rs-scroll::-webkit-scrollbar-track { background: #1f2937; }
+.rs-scroll::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
